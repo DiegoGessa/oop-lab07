@@ -3,29 +3,36 @@ package it.unibo.inner.test.impl;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import it.unibo.inner.api.IterableWithPolicy;
 import it.unibo.inner.api.Predicate;
 
 public class IterableWithPolicyImpl<T> implements IterableWithPolicy<T> {
-    private final List<T> myList = new ArrayList<>();
+    private final List<T> list = new ArrayList<>();
+    private Predicate<T> filter;
 
     public IterableWithPolicyImpl(T[] elements){
         for(int i=0; i<elements.length; i++){
-        myList.add(elements[i]);
+        list.add(elements[i]);
     }
-
 }
+
+    public IterableWithPolicyImpl(T[] elements, Predicate<T> filter){
+        setIterationPolicy(filter);
+        for(int i=0; i<elements.length; i++){
+        list.add(elements[i]);
+    }
+    }
 
     @Override
     public Iterator<T> iterator() {
-        InnerIteratorImpl iii = new InnerIteratorImpl();
-        return iii;
+        return new InnerIteratorImpl();
     }
 
     @Override
     public void setIterationPolicy(Predicate<T> filter) {
-
+        this.filter=filter;
     }
     
     private class InnerIteratorImpl implements Iterator<T>{
@@ -33,13 +40,25 @@ public class IterableWithPolicyImpl<T> implements IterableWithPolicy<T> {
 
         @Override
         public boolean hasNext() {
-            return count < myList.size();
+            while(count < list.size()){
+                var elem = list.get(count);
+                if(filter == null || filter.test(elem)){
+                    return true;
+                }
+                else{
+                    count++;
+                }
+            }
+            return false;
         }
 
         
         @Override
         public T next() {
-            return myList.get(count++);
+            if(hasNext()){
+                return list.get(count++);
+            }
+            throw new NoSuchElementException();
         }
 
     }
